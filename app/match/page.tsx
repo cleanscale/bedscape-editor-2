@@ -12,6 +12,32 @@ interface MatchResult {
   compositeImage?: string;
 }
 
+// Colour and texture keywords used to highlight the key match reasoning
+const REASONING_TERMS = [
+  "white", "cream", "ivory", "beige", "taupe", "sand", "stone", "greige", "grey", "gray",
+  "charcoal", "black", "navy", "blue", "teal", "green", "sage", "olive", "terracotta",
+  "rust", "pink", "blush", "mustard", "yellow", "gold", "brown", "tan", "natural", "warm",
+  "cool", "neutral", "tone", "tones", "tonal", "palette", "linen", "cotton", "velvet",
+  "wool", "knit", "waffle", "silk", "jute", "seagrass", "rattan", "boucle", "bouclé",
+  "textured", "texture", "textures", "matte", "woven", "chunky", "soft",
+];
+
+const REASONING_TERM_SET = new Set(REASONING_TERMS);
+
+function highlightReasoning(text: string) {
+  const pattern = new RegExp(`\\b(${REASONING_TERMS.join("|")})\\b`, "gi");
+  const parts = text.split(pattern);
+  return parts.map((part, i) =>
+    REASONING_TERM_SET.has(part.toLowerCase()) ? (
+      <strong key={i} className="font-semibold text-foreground">
+        {part}
+      </strong>
+    ) : (
+      <span key={i}>{part}</span>
+    )
+  );
+}
+
 export default function MatchPage() {
   const [matchState, setMatchState] = useState<MatchState>("upload");
   const [bedImage, setBedImage] = useState<string | null>(null);
@@ -401,19 +427,31 @@ export default function MatchPage() {
         label: 'Works beautifully',
         color: 'text-green-700',
         bg: 'bg-green-50',
-        border: 'border-green-200'
+        border: 'border-green-200',
+        badgeLabel: 'Strong match',
+        badgeBg: 'bg-green-100',
+        badgeText: 'text-green-800',
+        dot: 'bg-green-600'
       },
       'could-work': {
         label: 'Could work',
         color: 'text-amber-700',
         bg: 'bg-amber-50',
-        border: 'border-amber-200'
+        border: 'border-amber-200',
+        badgeLabel: 'Partial match',
+        badgeBg: 'bg-amber-100',
+        badgeText: 'text-amber-800',
+        dot: 'bg-amber-500'
       },
       'doesnt-work': {
         label: "Doesn't quite work",
         color: 'text-red-700',
         bg: 'bg-red-50',
-        border: 'border-red-200'
+        border: 'border-red-200',
+        badgeLabel: 'Weak match',
+        badgeBg: 'bg-red-100',
+        badgeText: 'text-red-800',
+        dot: 'bg-red-600'
       }
     };
 
@@ -461,12 +499,18 @@ export default function MatchPage() {
             </div>
           </div>
 
-          <div className={`p-6 sm:p-10 border ${config.border} ${config.bg} text-center`}>
-            <h3 className={`font-serif mb-6 ${config.color}`} style={{ fontSize: 'clamp(2rem, 8vw, 3.5rem)', fontWeight: 600 }}>
-              {config.label}
-            </h3>
-            <p className="text-foreground/80 font-light leading-relaxed text-base sm:text-lg max-w-md mx-auto">
-              {matchResult.explanation}
+          <div className={`p-6 sm:p-10 border ${config.border} ${config.bg}`}>
+            <div className="flex flex-wrap items-center gap-3 mb-6">
+              <h3 className={`font-serif ${config.color}`} style={{ fontSize: 'clamp(2rem, 8vw, 3.5rem)', fontWeight: 600 }}>
+                {config.label}
+              </h3>
+              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium font-sans ${config.badgeBg} ${config.badgeText}`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${config.dot}`} />
+                {config.badgeLabel}
+              </span>
+            </div>
+            <p className="font-sans text-foreground/80 font-light leading-relaxed text-base sm:text-lg text-left w-full sm:w-[65%]">
+              {highlightReasoning(matchResult.explanation)}
             </p>
           </div>
 
