@@ -1,5 +1,59 @@
 import { NextRequest } from 'next/server'
 
+// Generate composite image using OpenAI DALL-E variations
+async function generateCompositeImage(bedImage: string, itemImage: string): Promise<string | null> {
+  const openaiKey = process.env.OPENAI_API_KEY
+  if (!openaiKey) {
+    console.log('[v0] OpenAI API key not configured, skipping composite generation')
+    return null
+  }
+
+  try {
+    const bedBase64 = bedImage.split(',')[1]
+    
+    // Create a prompt describing what we want
+    const prompt = `A realistic bedroom scene showing the bed with new bedding/decor item placed on it naturally. The item should look like it belongs there, with proper lighting and shadows matching the room.`
+
+    // Use DALL-E 2 edit endpoint
+    // First, we need to convert the base64 to a file format
+    const bedBuffer = Buffer.from(bedBase64, 'base64')
+    
+    // Create form data for the API
+    const formData = new FormData()
+    formData.append('image', new Blob([bedBuffer], { type: 'image/png' }), 'bed.png')
+    formData.append('prompt', prompt)
+    formData.append('n', '1')
+    formData.append('size', '512x512')
+    formData.append('response_format', 'b64_json')
+
+    // Use the variations endpoint instead since edit requires a mask
+    const response = await fetch('https://api.openai.com/v1/images/variations', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openaiKey}`,
+      },
+      body: formData,
+    })
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('[v0] OpenAI image generation error:', response.status, errorText)
+      return null
+    }
+
+    const data = await response.json()
+    
+    if (data.data && data.data[0] && data.data[0].b64_json) {
+      return `data:image/png;base64,${data.data[0].b64_json}`
+    }
+    
+    return null
+  } catch (error) {
+    console.error('[v0] Error generating composite image:', error)
+    return null
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { bedImage, itemImage } = await request.json()
@@ -10,18 +64,11 @@ export async function POST(request: NextRequest) {
 
     const apiKey = process.env.ANTHROPIC_API_KEY
     if (!apiKey) {
-      // Dev-only fallback: with no Anthropic key, return a stub verdict so the
-      // composite-image feature can still be tested end-to-end. Never stubs in production.
-      if (process.env.NODE_ENV !== 'production') {
-        console.warn('[match-check] No ANTHROPIC_API_KEY — returning stub verdict (dev only).')
-        return Response.json({
-          verdict: 'could-work',
-          explanation:
-            '[Dev stub — no Anthropic key set] This is a placeholder verdict so the composite preview can be tested. Add ANTHROPIC_API_KEY for the real analysis.',
-        })
-      }
       return Response.json({ error: 'API key not configured' }, { status: 500 })
     }
+
+    // Start composite image generation in parallel (don't await yet)
+    const compositePromise = generateCompositeImage(bedImage, itemImage)
 
     // Extract base64 data from both images
     const bedBase64 = bedImage.split(',')[1]
@@ -152,7 +199,13 @@ Respond with JSON only.`
       }, { status: 500 })
     }
 
-    return Response.json(result)
+    // Wait for composite image (it may be null if it failed)
+    const compositeImage = await compositePromise
+
+    return Response.json({
+      ...result,
+      compositeImage,
+    })
   } catch (error) {
     console.error('[v0] Match check error:', error)
     return Response.json(

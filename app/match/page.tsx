@@ -9,6 +9,7 @@ type MatchVerdict = "works-beautifully" | "could-work" | "doesnt-work";
 interface MatchResult {
   verdict: MatchVerdict;
   explanation: string;
+  compositeImage?: string;
 }
 
 export default function MatchPage() {
@@ -16,14 +17,10 @@ export default function MatchPage() {
   const [bedImage, setBedImage] = useState<string | null>(null);
   const [itemImage, setItemImage] = useState<string | null>(null);
   const [matchResult, setMatchResult] = useState<MatchResult | null>(null);
-  const [compositeImage, setCompositeImage] = useState<string | null>(null);
-  const [compositeLoading, setCompositeLoading] = useState(false);
-  const [compositeError, setCompositeError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [isProcessingImage, setIsProcessingImage] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
-  const compositeAbortRef = useRef<AbortController | null>(null);
 
   const MAX_FILE_SIZE = 20 * 1024 * 1024;
   const MAX_OUTPUT_SIZE = 1024 * 1024;
@@ -159,45 +156,6 @@ export default function MatchPage() {
     }
   }, [compressImage, ensureUnderSizeLimit]);
 
-  const generateComposite = async (bed: string, item: string) => {
-    setCompositeLoading(true);
-    setCompositeError(null);
-    setCompositeImage(null);
-
-    compositeAbortRef.current = new AbortController();
-    const timeoutId = setTimeout(() => {
-      compositeAbortRef.current?.abort();
-    }, 120000);
-
-    try {
-      const response = await fetch("/api/match-composite", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bedImage: bed, itemImage: item }),
-        signal: compositeAbortRef.current.signal,
-      });
-
-      clearTimeout(timeoutId);
-
-      const data = await response.json().catch(() => ({}));
-
-      if (!response.ok || data.error || !data.compositeImage) {
-        throw new Error(data.error || "Couldn't generate the preview image.");
-      }
-
-      setCompositeImage(data.compositeImage);
-    } catch (err) {
-      clearTimeout(timeoutId);
-      if (err instanceof Error && err.name === "AbortError") {
-        setCompositeError("Preview timed out.");
-      } else {
-        setCompositeError(err instanceof Error ? err.message : "Couldn't generate the preview image.");
-      }
-    } finally {
-      setCompositeLoading(false);
-    }
-  };
-
   const analyzeMatch = async () => {
     if (!bedImage || !itemImage) return;
 
@@ -235,9 +193,6 @@ export default function MatchPage() {
 
       setMatchResult(data);
       setMatchState("results");
-
-      // Kick off the composite preview in the background once we have a verdict.
-      void generateComposite(bedImage, itemImage);
     } catch (err) {
       clearTimeout(timeoutId);
       
@@ -257,16 +212,10 @@ export default function MatchPage() {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
-    if (compositeAbortRef.current) {
-      compositeAbortRef.current.abort();
-    }
     setMatchState("upload");
     setBedImage(null);
     setItemImage(null);
     setMatchResult(null);
-    setCompositeImage(null);
-    setCompositeLoading(false);
-    setCompositeError(null);
     setError(null);
     setUploadError(null);
   };
@@ -478,40 +427,17 @@ export default function MatchPage() {
           </h2>
 
           {/* Composite Image - How it could look */}
-          {(compositeLoading || compositeImage || compositeError) && (
+          {matchResult.compositeImage && (
             <div className="mb-8">
               <p className="text-sm text-muted-foreground font-light text-center mb-3">
                 How it could look
               </p>
-              <div className="relative aspect-square max-w-md mx-auto border border-border overflow-hidden bg-muted">
-                {compositeImage ? (
-                  <img
-                    src={compositeImage}
-                    alt="How the item could look on your bed"
-                    className="w-full h-full object-cover"
-                  />
-                ) : compositeError ? (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6 text-center">
-                    <p className="text-sm text-red-700 font-medium">Preview unavailable</p>
-                    <p className="text-xs text-muted-foreground">{compositeError}</p>
-                    {bedImage && itemImage && (
-                      <button
-                        onClick={() => generateComposite(bedImage, itemImage)}
-                        className="mt-1 min-h-[40px] px-4 py-2 text-sm bg-primary text-primary-foreground font-medium hover:opacity-90 transition-opacity"
-                      >
-                        Retry preview
-                      </button>
-                    )}
-                  </div>
-                ) : (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
-                    <div className="relative w-10 h-10">
-                      <div className="absolute inset-0 border border-border rounded-full" />
-                      <div className="absolute inset-0 border border-transparent border-t-primary rounded-full animate-spin" style={{ animationDuration: '1.5s' }} />
-                    </div>
-                    <p className="text-sm text-muted-foreground font-light">Generating preview…</p>
-                  </div>
-                )}
+              <div className="relative aspect-square max-w-md mx-auto border border-border overflow-hidden">
+                <img 
+                  src={matchResult.compositeImage} 
+                  alt="How the item could look on your bed" 
+                  className="w-full h-full object-cover" 
+                />
               </div>
             </div>
           )}
