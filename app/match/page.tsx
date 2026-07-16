@@ -291,9 +291,9 @@ export default function MatchPage() {
             Upload both photos and we&apos;ll tell you if they work together
           </p>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+          <div className="grid grid-cols-2 gap-3 sm:gap-6">
             {/* Bed Photo Upload */}
-            <div className={`border-2 border-dashed p-4 transition-all ${bedImage ? 'border-primary bg-primary/5' : 'border-border'}`}>
+            <div className={`border-2 border-dashed p-2 sm:p-4 transition-all ${bedImage ? 'border-primary bg-primary/5' : 'border-border'}`}>
               {bedImage ? (
                 <div className="relative aspect-square">
                   <img
@@ -312,14 +312,14 @@ export default function MatchPage() {
                   </div>
                 </div>
               ) : (
-                <label className="flex flex-col items-center justify-center aspect-square cursor-pointer">
-                  <div className="w-12 h-12 mb-4 text-muted-foreground/40">
+                <label className="flex flex-col items-center justify-center text-center aspect-square cursor-pointer px-1">
+                  <div className="w-8 h-8 sm:w-12 sm:h-12 mb-2 sm:mb-4 text-muted-foreground/40">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
                       <rect x="2" y="10" width="20" height="10" rx="1" />
                       <path d="M4 10V6a2 2 0 012-2h12a2 2 0 012 2v4" />
                     </svg>
                   </div>
-                  <span className="text-sm font-medium text-foreground mb-1">Your bed at home</span>
+                  <span className="text-xs sm:text-sm font-medium text-foreground mb-1 text-balance">Your bed at home</span>
                   <span className="text-xs text-muted-foreground">Tap to upload</span>
                   <input
                     type="file"
@@ -332,7 +332,7 @@ export default function MatchPage() {
             </div>
 
             {/* Item Photo Upload */}
-            <div className={`border-2 border-dashed p-4 transition-all ${itemImage ? 'border-primary bg-primary/5' : 'border-border'}`}>
+            <div className={`border-2 border-dashed p-2 sm:p-4 transition-all ${itemImage ? 'border-primary bg-primary/5' : 'border-border'}`}>
               {itemImage ? (
                 <div className="relative aspect-square">
                   <img
@@ -351,15 +351,15 @@ export default function MatchPage() {
                   </div>
                 </div>
               ) : (
-                <label className="flex flex-col items-center justify-center aspect-square cursor-pointer">
-                  <div className="w-12 h-12 mb-4 text-muted-foreground/40">
+                <label className="flex flex-col items-center justify-center text-center aspect-square cursor-pointer px-1">
+                  <div className="w-8 h-8 sm:w-12 sm:h-12 mb-2 sm:mb-4 text-muted-foreground/40">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
                       <rect x="3" y="3" width="18" height="18" rx="2" />
                       <circle cx="8.5" cy="8.5" r="1.5" />
                       <path d="M21 15l-5-5L5 21" />
                     </svg>
                   </div>
-                  <span className="text-sm font-medium text-foreground mb-1">The item you&apos;re considering</span>
+                  <span className="text-xs sm:text-sm font-medium text-foreground mb-1 text-balance">The item you&apos;re considering</span>
                   <span className="text-xs text-muted-foreground">Tap to upload</span>
                   <input
                     type="file"
